@@ -18,7 +18,22 @@ export default function Game() {
   const [message, setMessage] = useState("")
   const [dice, setDice] = useState(0)
 
+  const socket = io.connect(process.env.API_URL, {query: `room=${roomCode}`});
 
+  socket.on("connect", async () => {
+    await fetch(`${process.env.API_URL}/player/socket?token=${localStorage.getItem('token')}&socket=${socket.id}`);
+  });
+  socket.on("join", async() => {
+    console.log('joinevent')
+    getRoomDetails();
+  })
+  socket.on("start", async() => {
+    window.location.href = `/game`;
+  })
+  socket.on("roll", async() => {
+    console.log('rollevent')
+    getRoomDetails();
+  })
 
   const getRoomDetails = async() => {
     const res = await fetch(`${process.env.API_URL}/room?token=${localStorage.getItem('token')}`);
@@ -68,22 +83,6 @@ export default function Game() {
 
   
   useEffect(() => {
-    const socket = io.connect(process.env.API_URL, {query: `room=${roomCode}`});
-
-    socket.on("connect", async () => {
-      await fetch(`${process.env.API_URL}/player/socket?token=${localStorage.getItem('token')}&socket=${socket.id}`);
-    });
-    socket.on("join", async() => {
-      console.log('joinevent')
-      getRoomDetails();
-    })
-    socket.on("start", async() => {
-      window.location.href = `/game`;
-    })
-    socket.on("roll", async() => {
-      console.log('rollevent')
-      getRoomDetails();
-    })
     socket.emit('join', roomCode);
   },[])
 
