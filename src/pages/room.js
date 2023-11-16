@@ -25,6 +25,13 @@ export default function Room() {
         setAdmin(data.room_admin);
         setName(data.name);
         setPlayers(data.players)
+        if (data.status == 'RUNNING') {
+          window.location.href = `/game`;
+        }
+        if (data.status == 'ENDED') {
+          alert('Game has ended');
+          window.location.href = `/`;
+        }
       } else {
         alert(data.error);
         window.location.href = '/'
@@ -63,6 +70,7 @@ export default function Room() {
       getRoomDetails();
     })
     socket.on("start", async() => {
+      console.log('hello')
       window.location.href = `/game`;
     })
     socket.emit('join', roomCode);

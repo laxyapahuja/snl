@@ -13,6 +13,10 @@ export default function Game() {
   const [admin, setAdmin] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [roomCode, setRoomCode] = useState("");
+  const [isTurn, setIsTurn] = useState(false);
+  const [currentPos, setCurrentPos] = useState(0);
+  const [message, setMessage] = useState("")
+  const [dice, setDice] = useState(0)
 
   const socket = io.connect(process.env.API_URL, {query: `room=${roomCode}`});
 
@@ -25,6 +29,15 @@ export default function Game() {
         setAdmin(data.room_admin);
         setName(data.name);
         setPlayers([...data.players])
+        setIsTurn(data.is_turn)
+        setCurrentPos(data.current_position)
+        if (data.status == 'WAITING') {
+          window.location.href = `/room`;
+        }
+        if (data.status == 'ENDED') {
+          alert('Game has ended');
+          window.location.href = `/`;
+        }
       } else {
         alert(data.error);
         window.location.href = '/'
@@ -32,6 +45,17 @@ export default function Game() {
   }
 
   const rollDice = async() => {
+    const res = await fetch(`${process.env.API_URL}/room/dice?token=${localStorage.getItem('token')}`);
+    const data = await res.json();
+    if (data.success) {
+      socket.emit('roll', roomCode);
+      socket.emit('join', roomCode);
+      setDice(data.dice);
+      setMessage(data.message);
+      setCurrentPos(data.current_position);
+    } else {
+      alert(data.error);
+    }
   }
 
   useEffect(() => {
@@ -53,6 +77,9 @@ export default function Game() {
     socket.on("start", async() => {
       window.location.href = `/game`;
     })
+    socket.on("roll", async() => {
+      getRoomDetails();
+    })
     socket.emit('join', roomCode);
   },[])
 
@@ -71,17 +98,17 @@ export default function Game() {
         <div className={styles.contentDiv}>
           <img className={styles.board} src='board.jpg'/>
           <div>
-            <h1>You are on: 0</h1>
-            <h2>You arrived on 7 and encontered a snake.</h2>
+            <h1>You are on: {currentPos}</h1>
+            <h2>{message}</h2>
             {
                 players.map((player) => (
                     <div className={styles.playerDiv}>
                         <img src="https://picsum.photos/200"/>
-                        <h2 className={styles.playerName}>{`${admin == player._id ? `${player.name} (Admin)`: name == player.name ? `${player.name} (You)` : player.name}: 0`}</h2>
+                        <h2 className={styles.playerName}>{`${admin == player._id ? `${player.name} (Admin)`: name == player.name ? `${player.name} (You)` : player.name}: ${player.current_position}`}</h2>
                     </div>
                 ))
             }
-            <button className={styles.startButton} onClick={rollDice}>Roll dice</button>
+            {isTurn ? (<button className={styles.startButton} onClick={rollDice}>Roll dice</button>) : ''}
           </div>     
         </div>
       </main>
